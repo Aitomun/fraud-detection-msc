@@ -102,7 +102,8 @@ def get_feature_names(fitted_pipeline, X: pd.DataFrame) -> list[str]:
             "preprocessor",
             list(fitted_pipeline.named_steps.values())[0],
         )
-        return list(preprocessor.get_feature_names_out())
+        names = list(preprocessor.get_feature_names_out())
+        return [name.split("__", 1)[-1] for name in names]
     except Exception:
         return list(X.columns)
 
@@ -110,6 +111,36 @@ def get_feature_names(fitted_pipeline, X: pd.DataFrame) -> list[str]:
 # ---------------------------------------------------------------------------
 # Compute SHAP values
 # ---------------------------------------------------------------------------
+
+def positive_class_shap_values(shap_values) -> np.ndarray:
+    """Normalize binary-class SHAP outputs to a rows-by-features array.
+
+    Older SHAP releases return a list containing one array per class, while
+    newer releases return an array with the class dimension last.
+    """
+    if isinstance(shap_values, list):
+        if len(shap_values) != 2:
+            raise ValueError("Expected two class-specific SHAP arrays")
+        return np.asarray(shap_values[1])
+
+    values = np.asarray(shap_values)
+    if values.ndim == 3:
+        if values.shape[-1] != 2:
+            raise ValueError(f"Unexpected SHAP class dimension: {values.shape}")
+        values = values[..., 1]
+    if values.ndim != 2:
+        raise ValueError(f"Expected a rows-by-features SHAP array, got {values.shape}")
+    return values
+
+
+def positive_class_expected_value(explainer) -> float:
+    """Return the fraud-class expected value across supported SHAP versions."""
+    expected = np.asarray(explainer.expected_value)
+    if expected.ndim == 0:
+        return float(expected)
+    if expected.size != 2:
+        raise ValueError(f"Unexpected SHAP expected-value shape: {expected.shape}")
+    return float(expected.reshape(-1)[1])
 
 def compute_shap_values(
     explainer,
@@ -129,11 +160,7 @@ def compute_shap_values(
     else:
         X_use = X_transformed
 
-    shap_values = explainer.shap_values(X_use)
-
-    # TreeExplainer returns list [class0, class1] for binary classifiers
-    if isinstance(shap_values, list) and len(shap_values) == 2:
-        shap_values = shap_values[1]   # class 1 = fraud
+    shap_values = positive_class_shap_values(explainer.shap_values(X_use))
 
     print(f"SHAP values computed: shape {shap_values.shape}")
     return shap_values, X_use
@@ -215,15 +242,11 @@ def plot_local_waterfall(
     """
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    sv = explainer.shap_values(X_single_transformed)
-    if isinstance(sv, list):
-        sv = sv[1]
+    sv = positive_class_shap_values(explainer.shap_values(X_single_transformed))
 
     shap_exp = shap.Explanation(
         values          = sv[0] if sv.ndim == 2 else sv,
-        base_values     = explainer.expected_value[1]
-                          if isinstance(explainer.expected_value, (list, np.ndarray))
-                          else explainer.expected_value,
+        base_values     = positive_class_expected_value(explainer),
         data            = X_single_transformed[0],
         feature_names   = feature_names,
     )
@@ -258,9 +281,7 @@ def explain_single(
     proba   = fitted_pipeline.predict_proba(X_single)[0, 1]
     pred    = int(proba >= threshold)
 
-    sv = explainer.shap_values(X_t)
-    if isinstance(sv, list):
-        sv = sv[1]
+    sv = positive_class_shap_values(explainer.shap_values(X_t))
     sv = sv[0] if sv.ndim == 2 else sv
 
     feat_shap = pd.Series(sv, index=feature_names).sort_values()

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.matplotlib/
+
+# Generated research outputs
+data/processed/*
+!data/processed/.gitkeep
+models/*
+!models/.gitkeep
+
+# Local document-render QA files
+artifacts/docx_render/
+dissertation.docx

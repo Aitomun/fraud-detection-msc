@@ -83,11 +83,12 @@ def cross_validate_model(
     """
     if scoring is None:
         scoring = {
+            "accuracy":          "accuracy",
             "precision":         "precision",
             "recall":            "recall",
             "f1":                "f1",
             "roc_auc":           "roc_auc",
-            "average_precision": "average_precision",
+            "pr_auc":            "average_precision",
         }
 
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE)
@@ -100,15 +101,22 @@ def cross_validate_model(
         n_jobs=-1,
     )
 
-    results_df = pd.DataFrame({
-        k.replace("test_", ""): v
-        for k, v in cv_results.items()
-        if k.startswith("test_")
-    })
+    results_df = pd.DataFrame(
+        {
+            "fit_time_seconds": cv_results["fit_time"],
+            "score_time_seconds": cv_results["score_time"],
+            **{
+                k.replace("test_", ""): v
+                for k, v in cv_results.items()
+                if k.startswith("test_")
+            },
+        }
+    )
 
-    print(f"CV results (mean ± std) over {n_splits} folds:")
-    for col in results_df.columns:
-        print(f"  {col:22s}: {results_df[col].mean():.4f} ± {results_df[col].std():.4f}")
+    print(f"CV results (mean +/- std) over {n_splits} folds:")
+    for col in ["accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc"]:
+        print(f"  {col:22s}: {results_df[col].mean():.4f} +/- {results_df[col].std():.4f}")
+    print(f"  {'fit_time_seconds':22s}: {results_df['fit_time_seconds'].mean():.2f} seconds/fold")
 
     return results_df
 
@@ -186,20 +194,20 @@ def save_model(
     """Save a fitted pipeline with joblib. Optionally write a JSON metadata file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
-    print(f"Model saved → {path}")
+    print(f"Model saved -> {path}")
 
     if metadata is not None:
         meta_path = path.parent / "model_metadata.json"
         with open(meta_path, "w") as f:
             json.dump(metadata, f, indent=2, default=str)
-        print(f"Metadata saved → {meta_path}")
+        print(f"Metadata saved -> {meta_path}")
 
 
 def save_preprocessing_pipeline(pipeline, path: Path = PREPROCESSING_FILE) -> None:
     """Save just the preprocessing pipeline (if needed separately)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, path)
-    print(f"Preprocessing pipeline saved → {path}")
+    print(f"Preprocessing pipeline saved -> {path}")
 
 
 def load_model(path: Path = FINAL_MODEL_FILE):

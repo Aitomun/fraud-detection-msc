@@ -80,6 +80,46 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+On Windows PowerShell, this repository currently uses:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+## Phased execution
+
+The leakage-safe execution order and milestone status are maintained in
+[`PROJECT_PLAN.md`](PROJECT_PLAN.md). Run only the current phase; do not use the
+locked test partition during development.
+
+Completed reproducible phase commands:
+
+```powershell
+# Milestone 1: dataset audit and EDA only
+.\.venv\Scripts\python.exe -B src\run_eda.py
+
+# Milestone 2: duplicate cleaning and the single stratified split
+.\.venv\Scripts\python.exe -B src\run_preprocessing.py
+
+# Milestone 3: training-only baseline cross-validation
+.\.venv\Scripts\python.exe -B src\run_baseline_cv.py
+
+# Milestone 4A and 4B: imbalance comparison, model selection, threshold freeze
+.\.venv\Scripts\python.exe -B src\run_imbalance_cv.py
+.\.venv\Scripts\python.exe -B src\run_milestone4_selection.py
+
+# Milestone 5: single-use final evaluation (do not rerun after completion)
+.\.venv\Scripts\python.exe -B src\run_final_evaluation.py
+
+# Milestone 6: global, cohort, and representative local SHAP explanations
+.\.venv\Scripts\python.exe -B src\run_shap_explainability.py
+
+# Milestone 7: automated application and inference tests
+.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+```
+
+The continuous dissertation draft and evidence records are in `docs/`.
+
 ### 4. Run notebooks in order
 
 ```bash

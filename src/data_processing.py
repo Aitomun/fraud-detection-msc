@@ -135,7 +135,7 @@ def remove_duplicates(df: pd.DataFrame, decision: bool = True) -> pd.DataFrame:
     before = len(df)
     df_clean = df.drop_duplicates(keep="first").reset_index(drop=True)
     after    = len(df_clean)
-    print(f"Removed {before - after:,} duplicate rows ({before:,} → {after:,}).")
+    print(f"Removed {before - after:,} duplicate rows ({before:,} -> {after:,}).")
     return df_clean
 
 
@@ -210,3 +210,27 @@ def load_splits(
     y_test  = test[TARGET_COL]
 
     return X_train, X_test, y_train, y_test
+
+
+def load_training_split(
+    out_dir: Path = DATA_PROCESSED,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Load only the training partition for development experiments.
+
+    Use this function for cross-validation, imbalance experiments, tuning, and
+    threshold selection so development code does not open the locked test set.
+    """
+    train = pd.read_parquet(out_dir / "train.parquet")
+    X_train = train.drop(columns=[TARGET_COL])
+    y_train = train[TARGET_COL]
+    return X_train, y_train
+
+
+def load_test_split(
+    out_dir: Path = DATA_PROCESSED,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Load the locked test partition for the one final evaluation only."""
+    test = pd.read_parquet(out_dir / "test.parquet")
+    X_test = test.drop(columns=[TARGET_COL])
+    y_test = test[TARGET_COL]
+    return X_test, y_test

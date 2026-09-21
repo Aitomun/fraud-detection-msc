@@ -274,5 +274,49 @@ def save_metrics_csv(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / filename
     df.to_csv(out_path, index=True)
-    print(f"Metrics saved → {out_path}")
+    print(f"Metrics saved -> {out_path}")
+    return out_path
+
+
+def plot_cv_metric_comparison(
+    summary: pd.DataFrame,
+    filename: str = "baseline_cv_comparison.png",
+    out_dir: Path = FIGURES_DIR,
+) -> Path:
+    """Plot mean cross-validation metrics with one-standard-deviation bars."""
+    metrics = ["precision", "recall", "f1", "pr_auc"]
+    labels = ["Precision", "Recall", "F1", "PR-AUC"]
+    model_names = summary["model"].tolist()
+    x = np.arange(len(metrics))
+    width = 0.24
+    colors = ["#376A8A", "#B7791F", "#4F7D5B"]
+
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    for index, (model_name, color) in enumerate(zip(model_names, colors)):
+        row = summary.iloc[index]
+        means = [row[f"{metric}_mean"] for metric in metrics]
+        errors = [row[f"{metric}_std"] for metric in metrics]
+        ax.bar(
+            x + (index - 1) * width,
+            means,
+            width,
+            yerr=errors,
+            capsize=4,
+            color=color,
+            label=model_name,
+        )
+
+    ax.set_title("Baseline Five-Fold Cross-Validation Performance")
+    ax.set_ylabel("Score")
+    ax.set_xticks(x, labels)
+    ax.set_ylim(0, 1.05)
+    ax.legend(loc="lower right")
+    ax.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / filename
+    fig.savefig(out_path, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {out_path}")
     return out_path

@@ -17,13 +17,10 @@ that are not present in the dataset.
 """
 
 import sys
-import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import streamlit as st
-import joblib
 import shap
 import matplotlib
 matplotlib.use("Agg")
@@ -38,7 +35,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import (
     FINAL_MODEL_FILE,
-    PREPROCESSING_FILE,
     MODEL_METADATA_FILE,
     DATA_PROCESSED,
     TARGET_COL,
@@ -47,6 +43,14 @@ from src.explain import (
     get_transformed_data,
     get_feature_names,
     build_shap_explainer,
+    positive_class_expected_value,
+    positive_class_shap_values,
+)
+from app.model_service import (
+    FEATURE_COLS,
+    load_model_artifacts,
+    predict_transactions,
+    validate_input_frame,
 )
 
 # ---------------------------------------------------------------------------
@@ -58,25 +62,14 @@ st.set_page_config(
     layout="wide",
 )
 
-FEATURE_COLS = ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount"]
-
-
 # ---------------------------------------------------------------------------
 # Model loading (cached so it only happens once per session)
 # ---------------------------------------------------------------------------
 
 @st.cache_resource(show_spinner="Loading model …")
 def load_artifacts():
-    """Load the final model and metadata. Returns None if artifacts missing."""
-    if not FINAL_MODEL_FILE.exists():
-        return None, None
-
-    model = joblib.load(FINAL_MODEL_FILE)
-    metadata = {}
-    if MODEL_METADATA_FILE.exists():
-        with open(MODEL_METADATA_FILE) as f:
-            metadata = json.load(f)
-    return model, metadata
+    """Load and validate the final model and metadata."""
+    return load_model_artifacts(FINAL_MODEL_FILE, MODEL_METADATA_FILE)
 
 
 @st.cache_resource(show_spinner="Building SHAP explainer …")
@@ -104,16 +97,8 @@ def load_test_set():
 
 def shap_waterfall_fig(model, explainer, X_single: pd.DataFrame, feature_names: list) -> plt.Figure:
     X_t = get_transformed_data(model, X_single)
-    sv  = explainer.shap_values(X_t)
-    if isinstance(sv, list):
-        sv = sv[1]
-    sv = sv[0] if sv.ndim == 2 else sv
-
-    expected = (
-        explainer.expected_value[1]
-        if isinstance(explainer.expected_value, (list, np.ndarray))
-        else explainer.expected_value
-    )
+    sv = positive_class_shap_values(explainer.shap_values(X_t))[0]
+    expected = positive_class_expected_value(explainer)
 
     exp = shap.Explanation(
         values        = sv,
@@ -133,22 +118,19 @@ def shap_waterfall_fig(model, explainer, X_single: pd.DataFrame, feature_names: 
 
 def main():
     st.title("🔍 Credit Card Fraud Detection")
-    st.caption("MSc Research Prototype — Not a production banking system")
+    st.caption("MSc Research Prototype ")
 
     # ------------------------------------------------------------------
     # Load artifacts
     # ------------------------------------------------------------------
-    model, metadata = load_artifacts()
-
-    if model is None:
+    try:
+        model, metadata = load_artifacts()
+    except (FileNotFoundError, ValueError) as error:
         st.error(
-            "⚠️  Model artifacts not found. "
-            "Please run all notebooks (01 → 05) before launching this app."
+            "Model artifacts are unavailable or invalid. "
+            "Complete Milestone 5 before launching this application."
         )
-        st.info(
-            "Expected location:\n"
-            f"```\n{FINAL_MODEL_FILE}\n```"
-        )
+        st.code(str(error))
         return
 
     # ------------------------------------------------------------------
@@ -156,24 +138,15 @@ def main():
     # ------------------------------------------------------------------
     with st.sidebar:
         st.header("Model Information")
-        if metadata:
-            for k, v in metadata.items():
-                st.write(f"**{k}:** {v}")
-        else:
-            st.write("No metadata file found.")
+        st.write(f"**Classifier:** {metadata['model']}")
+        st.write(f"**Trees:** {metadata['n_estimators']}")
+        st.write(f"**Class weighting:** {metadata['class_weight']}")
+        st.write(f"**Features:** {len(metadata['feature_order'])}")
 
         st.divider()
-        threshold = st.slider(
-            "Classification Threshold",
-            min_value=0.01,
-            max_value=0.99,
-            value=float(metadata.get("threshold", 0.5)),
-            step=0.01,
-            help=(
-                "Adjust the probability threshold for classifying a transaction "
-                "as fraudulent. Lower threshold → higher recall, more false positives."
-            ),
-        )
+        threshold = float(metadata["threshold"])
+        st.metric("Frozen threshold", f"{threshold:.3f}")
+        st.caption("Fixed during training-only model selection; not adjustable after test evaluation.")
 
     # ------------------------------------------------------------------
     # Mode selector
@@ -199,7 +172,9 @@ def main():
 
         with col1:
             input_vals["Time"]   = st.number_input("Time (seconds)", value=0.0, format="%.2f")
-            input_vals["Amount"] = st.number_input("Amount (£)", value=1.0, min_value=0.0, format="%.2f")
+            input_vals["Amount"] = st.number_input(
+                "Amount (dataset units)", value=1.0, min_value=0.0, format="%.2f"
+            )
 
         for i, vname in enumerate([f"V{j}" for j in range(1, 29)]):
             target_col = col2 if i < 14 else col3
@@ -238,15 +213,21 @@ def main():
         st.dataframe(X_input.T.rename(columns={X_input.index[0]: "Value"}))
 
         if y_test is not None:
-            true_label = y_test.iloc[y_test.index.get_loc(X_pool.index[sel_idx])]
+            true_label = y_test.loc[X_pool.index[sel_idx]]
             st.write(f"**True label:** {'Fraudulent' if true_label == 1 else 'Legitimate'}")
 
     # ------------------------------------------------------------------
     # Predict
     # ------------------------------------------------------------------
     if st.button("🔎 Predict Transaction", type="primary"):
-        proba  = model.predict_proba(X_input)[0, 1]
-        pred   = int(proba >= threshold)
+        try:
+            X_input = validate_input_frame(X_input)
+            result = predict_transactions(model, metadata, X_input).iloc[0]
+        except ValueError as error:
+            st.error(f"Invalid transaction: {error}")
+            return
+        proba = float(result["fraud_probability"])
+        pred = int(result["predicted_class"])
 
         st.divider()
         col_r, col_p = st.columns(2)
@@ -259,7 +240,7 @@ def main():
 
         with col_p:
             st.metric("Fraud Probability", f"{proba:.2%}")
-            st.metric("Threshold used", f"{threshold:.2f}")
+            st.metric("Threshold used", f"{threshold:.3f}")
 
         # ------------------------------------------------------------------
         # SHAP explanation
@@ -273,29 +254,16 @@ def main():
         )
 
         try:
-            # We need a training sample to initialise the explainer
-            X_train_sample_path = DATA_PROCESSED / "train.parquet"
-            if X_train_sample_path.exists():
-                train  = pd.read_parquet(X_train_sample_path)
-                X_tr   = train.drop(columns=[TARGET_COL]).sample(
-                    min(200, len(train)), random_state=42
-                )[FEATURE_COLS]
-            else:
-                X_tr = X_input  # fallback (explainer quality reduced)
-
-            explainer     = get_explainer(model, X_tr)
+            explainer     = get_explainer(model, X_input)
             feature_names = get_feature_names(model, X_input)
 
             fig = shap_waterfall_fig(model, explainer, X_input, feature_names)
-            st.pyplot(fig, use_container_width=True)
+            st.pyplot(fig, width="stretch")
             plt.close(fig)
 
             # Tabular breakdown
             X_t = get_transformed_data(model, X_input)
-            sv  = explainer.shap_values(X_t)
-            if isinstance(sv, list):
-                sv = sv[1]
-            sv = sv[0] if sv.ndim == 2 else sv
+            sv = positive_class_shap_values(explainer.shap_values(X_t))[0]
 
             feat_shap = pd.Series(sv, index=feature_names).sort_values()
 
@@ -321,7 +289,7 @@ def main():
     st.divider()
     st.caption(
         "Research Prototype | MSc Dissertation | "
-        "Not for production use | "
+        
         "V1–V28 are anonymized features | "
         "SHAP explains model behaviour, not causality."
     )
