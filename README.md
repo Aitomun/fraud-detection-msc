@@ -130,7 +130,7 @@ streamlit run app/streamlit_app.py
 
 ## Reproducibility
 
-All experiments use `random_state=42`. Re-running the notebooks in order
+All experiments use `random_state=42`. Re-running the milestone scripts in order
 produces identical results given the same dataset.
 
 ---
