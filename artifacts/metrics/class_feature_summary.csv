@@ -1,0 +1,3 @@
+Class,amount_count,amount_mean,amount_median,amount_std,amount_min,amount_max,time_count,time_mean,time_median,time_std,time_min,time_max
+0,284315,88.291022,22.0,250.105092,0.0,25691.16,284315,94838.202258,84711.0,47484.015786,0.0,172792.0
+1,492,122.211321,9.25,256.683288,0.0,2125.87,492,80746.806911,75568.5,47835.365138,406.0,170348.0

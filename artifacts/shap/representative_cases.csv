@@ -1,0 +1,5 @@
+error_type,test_row,actual_class,predicted_class,fraud_probability,threshold,selection_rule,category_size,shap_baseline_model_output,reconstructed_probability
+true_positive,8815,1,1,0.965,0.485,probability nearest category median,69,0.5000808220988633,0.9650000000000122
+true_negative,0,0,0,0.0,0.485,probability nearest category median,56648,0.5000808220988633,6.517009154549669e-14
+false_positive,49255,0,1,0.625,0.485,probability nearest category median,3,0.5000808220988633,0.6249999999999961
+false_negative,47606,1,0,0.015,0.485,probability nearest category median,26,0.5000808220988633,0.014999999999961489

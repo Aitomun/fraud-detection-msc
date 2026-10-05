@@ -1,0 +1,7 @@
+measure,value
+exact_duplicate_rows_after_first,1081
+all_rows_in_exact_duplicate_groups,1854
+duplicate_rows_after_first_class_0,1062
+duplicate_rows_after_first_class_1,19
+feature_identical_conflicting_label_groups,0
+rows_in_conflicting_label_groups,0

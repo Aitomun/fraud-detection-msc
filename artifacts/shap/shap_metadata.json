@@ -1,0 +1,83 @@
+{
+  "phase": "Milestone 6 SHAP explainability",
+  "model_file": "C:\\Users\\david\\Downloads\\fraud-detection-msc\\models\\final_model.joblib",
+  "model_sha256": "3b13807fca9bf45934500150647b5208fb94520274e5a72a141bd4ef0790eb91",
+  "shap_version": "0.52.0",
+  "explainer": "TreeExplainer",
+  "explained_output": "class 1 fraud probability",
+  "shap_baseline_model_output": 0.5000808220988633,
+  "baseline_interpretation": "TreeExplainer reference output under the fitted class-weighted forest; not observed fraud prevalence",
+  "global_sample": {
+    "source": "training partition",
+    "selection": "simple random sample without replacement",
+    "random_state": 42,
+    "rows": 2000,
+    "fraud_rows": 5,
+    "legitimate_rows": 1995
+  },
+  "maximum_global_additivity_error": 2.096744999846578e-11,
+  "cohort_comparison": {
+    "fraud_source": "all fraud observations in the training partition",
+    "fraud_rows": 378,
+    "legitimate_source": "simple random training sample without replacement",
+    "legitimate_rows": 2000,
+    "legitimate_random_state": 42,
+    "purpose": "supplement the prevalence-respecting global sample; not a prevalence estimate"
+  },
+  "representative_case_selection": "probability nearest the median within each final-test outcome category",
+  "representative_cases": [
+    {
+      "error_type": "true_positive",
+      "test_row": 8815,
+      "actual_class": 1,
+      "predicted_class": 1,
+      "fraud_probability": 0.965,
+      "threshold": 0.485,
+      "selection_rule": "probability nearest category median",
+      "category_size": 69,
+      "shap_baseline_model_output": 0.5000808220988633,
+      "reconstructed_probability": 0.9650000000000122
+    },
+    {
+      "error_type": "true_negative",
+      "test_row": 0,
+      "actual_class": 0,
+      "predicted_class": 0,
+      "fraud_probability": 0.0,
+      "threshold": 0.485,
+      "selection_rule": "probability nearest category median",
+      "category_size": 56648,
+      "shap_baseline_model_output": 0.5000808220988633,
+      "reconstructed_probability": 6.517009154549669e-14
+    },
+    {
+      "error_type": "false_positive",
+      "test_row": 49255,
+      "actual_class": 0,
+      "predicted_class": 1,
+      "fraud_probability": 0.625,
+      "threshold": 0.485,
+      "selection_rule": "probability nearest category median",
+      "category_size": 3,
+      "shap_baseline_model_output": 0.5000808220988633,
+      "reconstructed_probability": 0.6249999999999961
+    },
+    {
+      "error_type": "false_negative",
+      "test_row": 47606,
+      "actual_class": 1,
+      "predicted_class": 0,
+      "fraud_probability": 0.015,
+      "threshold": 0.485,
+      "selection_rule": "probability nearest category median",
+      "category_size": 26,
+      "shap_baseline_model_output": 0.5000808220988633,
+      "reconstructed_probability": 0.014999999999961489
+    }
+  ],
+  "limitations": [
+    "SHAP describes model behaviour and does not establish causality.",
+    "V1 through V28 are anonymized and cannot receive unsupported business meanings.",
+    "Global importance is estimated from a deterministic 2,000-row training sample."
+  ]
+}

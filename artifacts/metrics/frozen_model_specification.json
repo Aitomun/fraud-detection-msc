@@ -1,0 +1,282 @@
+{
+  "phase": "Milestone 4 model and threshold selection",
+  "selection_metric": "mean five-fold cross-validated average precision (PR-AUC)",
+  "tie_break_evidence": [
+    "lower PR-AUC standard deviation",
+    "higher mean F1"
+  ],
+  "selected_candidate": {
+    "candidate_id": "rf_balanced_200",
+    "model": "Random Forest",
+    "strategy": "class_weight_balanced",
+    "amount_transform": "original",
+    "params": {
+      "n_estimators": 200,
+      "criterion": "gini",
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "class_weight": "balanced",
+      "random_state": 42,
+      "n_jobs": 1
+    },
+    "source": "Milestone 4B"
+  },
+  "selected_cv_results": {
+    "candidate_id": "rf_balanced_200",
+    "model": "Random Forest",
+    "imbalance_strategy": "class_weight_balanced",
+    "amount_transform": "original",
+    "cv_folds": 5,
+    "accuracy_mean": 0.9995418098510882,
+    "accuracy_std": 8.588240677424381e-05,
+    "precision_mean": 0.921306535431625,
+    "precision_std": 0.02420151637601836,
+    "recall_mean": 0.7936140350877192,
+    "recall_std": 0.05803314131528883,
+    "f1_mean": 0.8514739229024944,
+    "f1_std": 0.03244374204051587,
+    "roc_auc_mean": 0.9631934522564869,
+    "roc_auc_std": 0.01096836906422307,
+    "pr_auc_mean": 0.8367536840715518,
+    "pr_auc_std": 0.03207921646499407,
+    "fit_time_seconds_mean": 106.39247937202454
+  },
+  "threshold_selection": {
+    "threshold": 0.485,
+    "selection_objective": "maximum out-of-fold F1",
+    "precision": 0.9219219219219219,
+    "recall": 0.8121693121693122,
+    "f1": 0.8635724331926864,
+    "pr_auc": 0.8353291313842423,
+    "tn": 226576,
+    "fp": 26,
+    "fn": 71,
+    "tp": 307
+  },
+  "feature_order": [
+    "Time",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "cross_validation": {
+    "type": "StratifiedKFold",
+    "folds": 5,
+    "shuffle": true,
+    "random_state": 42
+  },
+  "training_rows": 226980,
+  "training_fraud_cases": 378,
+  "test_data_loaded": false,
+  "candidate_registry": [
+    {
+      "candidate_id": "lr_original_none_c1",
+      "model": "Logistic Regression",
+      "strategy": "original_distribution",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 3 baseline"
+    },
+    {
+      "candidate_id": "dt_original_default",
+      "model": "Decision Tree",
+      "strategy": "original_distribution",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 3 baseline"
+    },
+    {
+      "candidate_id": "rf_none_100",
+      "model": "Random Forest",
+      "strategy": "original_distribution",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 3 baseline"
+    },
+    {
+      "candidate_id": "lr_original_balanced_c1",
+      "model": "Logistic Regression",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 4A"
+    },
+    {
+      "candidate_id": "dt_balanced_default",
+      "model": "Decision Tree",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 4A"
+    },
+    {
+      "candidate_id": "rf_balanced_100",
+      "model": "Random Forest",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "original",
+      "params": {},
+      "source": "Milestone 4A"
+    },
+    {
+      "candidate_id": "lr_log1p_none_c01",
+      "model": "Logistic Regression",
+      "strategy": "original_distribution",
+      "amount_transform": "log1p",
+      "params": {
+        "C": 0.1,
+        "class_weight": null
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "lr_log1p_none_c1",
+      "model": "Logistic Regression",
+      "strategy": "original_distribution",
+      "amount_transform": "log1p",
+      "params": {
+        "C": 1.0,
+        "class_weight": null
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "lr_log1p_none_c10",
+      "model": "Logistic Regression",
+      "strategy": "original_distribution",
+      "amount_transform": "log1p",
+      "params": {
+        "C": 10.0,
+        "class_weight": null
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "lr_log1p_balanced_c1",
+      "model": "Logistic Regression",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "log1p",
+      "params": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "lr_smote_original_c1",
+      "model": "Logistic Regression",
+      "strategy": "smote",
+      "amount_transform": "original",
+      "params": {
+        "C": 1.0,
+        "class_weight": null
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "lr_smote_log1p_c1",
+      "model": "Logistic Regression",
+      "strategy": "smote",
+      "amount_transform": "log1p",
+      "params": {
+        "C": 1.0,
+        "class_weight": null
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "rf_none_200",
+      "model": "Random Forest",
+      "strategy": "original_distribution",
+      "amount_transform": "original",
+      "params": {
+        "n_estimators": 200,
+        "class_weight": null,
+        "n_jobs": 1
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "rf_balanced_200",
+      "model": "Random Forest",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "original",
+      "params": {
+        "n_estimators": 200,
+        "criterion": "gini",
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "class_weight": "balanced",
+        "random_state": 42,
+        "n_jobs": 1
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "rf_balanced_subsample_200",
+      "model": "Random Forest",
+      "strategy": "class_weight_balanced_subsample",
+      "amount_transform": "original",
+      "params": {
+        "n_estimators": 200,
+        "class_weight": "balanced_subsample",
+        "n_jobs": 1
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "rf_balanced_200_leaf2",
+      "model": "Random Forest",
+      "strategy": "class_weight_balanced",
+      "amount_transform": "original",
+      "params": {
+        "n_estimators": 200,
+        "class_weight": "balanced",
+        "min_samples_leaf": 2,
+        "n_jobs": 1
+      },
+      "source": "Milestone 4B"
+    },
+    {
+      "candidate_id": "rf_smote_100",
+      "model": "Random Forest",
+      "strategy": "smote",
+      "amount_transform": "original",
+      "params": {
+        "n_estimators": 100,
+        "class_weight": null,
+        "n_jobs": 1
+      },
+      "source": "Milestone 4B"
+    }
+  ]
+}

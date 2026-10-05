@@ -1,0 +1,18 @@
+{
+  "phase": "Milestone 4A class weighting",
+  "data_loaded": "data/processed/train.parquet only",
+  "test_data_loaded": false,
+  "training_rows": 226980,
+  "training_fraud_cases": 378,
+  "cross_validation": {
+    "type": "StratifiedKFold",
+    "folds": 5,
+    "shuffle": true,
+    "random_state": 42
+  },
+  "comparison": [
+    "original_distribution",
+    "class_weight_balanced"
+  ],
+  "smote_status": "not run; decision follows class-weight evidence"
+}
