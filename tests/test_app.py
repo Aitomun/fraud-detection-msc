@@ -71,7 +71,10 @@ class ArtifactAndPredictionTests(unittest.TestCase):
         cls.model, cls.metadata = load_model_artifacts(
             FINAL_MODEL_FILE, MODEL_METADATA_FILE
         )
-        cls.test = pd.read_parquet(DATA_PROCESSED / "test.parquet")
+        test_path = DATA_PROCESSED / "test.parquet"
+        if not test_path.exists():
+            raise unittest.SkipTest("Full processed test split not present; run src/run_preprocessing.py")
+        cls.test = pd.read_parquet(test_path)
 
     def test_missing_model_has_clear_error(self):
         with tempfile.TemporaryDirectory() as directory:

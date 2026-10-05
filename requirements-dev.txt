@@ -1,0 +1,4 @@
+# Full pipeline, EDA and dissertation build (includes runtime dependencies).
+-r requirements.txt
+seaborn==0.13.2
+python-docx==1.2.0

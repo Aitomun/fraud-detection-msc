@@ -24,7 +24,8 @@ production banking system.
 fraud-detection-msc/
 ├── data/
 │   ├── raw/                    ← Place credit_card.csv here (not tracked; see Setup)
-│   └── processed/              ← Generated train/test splits
+│   ├── processed/              ← Generated train/test splits (not tracked)
+│   └── sample/                 ← 1,000-row test sample used by the deployed demo
 ├── src/
 │   ├── data_processing.py      ← Load, clean, split
 │   ├── feature_engineering.py  ← Scaling, pipeline construction
@@ -40,7 +41,8 @@ fraud-detection-msc/
 ├── artifacts/                  ← Metrics, figures and SHAP outputs
 ├── notebooks/archive/          ← Superseded template notebooks (do not run)
 ├── config.py                   ← All paths and settings
-└── requirements.txt
+├── requirements.txt            ← Pinned runtime dependencies (demo)
+└── requirements-dev.txt        ← Adds seaborn and python-docx (pipeline, dissertation build)
 ```
 
 ---
@@ -49,11 +51,16 @@ fraud-detection-msc/
 
 ### 1. Place the dataset
 
-Copy `credit_card.csv` into:
+The raw dataset is **not stored in this repository** (99 MB). Download the public
+"Credit Card Fraud Detection" dataset (ULB Machine Learning Group, Kaggle:
+https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) and save it as:
 
 ```
 data/raw/credit_card.csv
 ```
+
+It is only needed to re-run the pipeline. The Streamlit demo runs from the committed
+model (`models/`) and the committed sample (`data/sample/`).
 
 ### 2. Create a virtual environment (recommended)
 
@@ -65,14 +72,16 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 ### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # full pipeline; use requirements.txt for the demo only
 ```
 
 On Windows PowerShell, this repository currently uses:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
+
+Versions are pinned (Python 3.12) because the saved model is a pickled scikit-learn pipeline.
 
 ## Phased execution
 

@@ -9,7 +9,11 @@ data/processed/*
 !data/processed/.gitkeep
 models/*
 !models/.gitkeep
+!models/final_model.joblib
+!models/model_metadata.json
 
 # Local document-render QA files
 artifacts/docx_render/
 dissertation.docx
+data/raw/*
+!data/raw/.gitkeep

@@ -37,6 +37,7 @@ from config import (
     FINAL_MODEL_FILE,
     MODEL_METADATA_FILE,
     DATA_PROCESSED,
+    DATA_SAMPLE,
     TARGET_COL,
 )
 from src.explain import (
@@ -81,8 +82,10 @@ def get_explainer(_model, X_train_sample):
 
 @st.cache_data(show_spinner="Loading test set …")
 def load_test_set():
-    """Load the processed test set for the sample selector mode."""
+    """Load the full test set, or the committed 1,000-row sample if it is absent."""
     test_path = DATA_PROCESSED / "test.parquet"
+    if not test_path.exists():
+        test_path = DATA_SAMPLE / "test_sample.parquet"
     if not test_path.exists():
         return None, None
     test = pd.read_parquet(test_path)
@@ -191,7 +194,7 @@ def main():
         X_test, y_test = load_test_set()
 
         if X_test is None:
-            st.warning("Test set not found. Run notebook 02 first.")
+            st.warning("Sample transactions not found. Run src/run_preprocessing.py first.")
             return
 
         fraud_filter = st.selectbox(

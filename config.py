@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 DATA_RAW        = PROJECT_ROOT / "data" / "raw"
 DATA_PROCESSED  = PROJECT_ROOT / "data" / "processed"
+DATA_SAMPLE     = PROJECT_ROOT / "data" / "sample"   # committed demo sample
 
 MODELS_DIR      = PROJECT_ROOT / "models"
 ARTIFACTS_DIR   = PROJECT_ROOT / "artifacts"
