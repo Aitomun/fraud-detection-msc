@@ -22,37 +22,25 @@ production banking system.
 
 ```
 fraud-detection-msc/
-│
 ├── data/
-│   ├── raw/                    ← Place credit_card.csv here
-│   └── processed/              ← Auto-generated preprocessed splits
-│
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_preprocessing.ipynb
-│   ├── 03_baseline_models.ipynb
-│   ├── 04_model_improvement.ipynb
-│   └── 05_shap_explainability.ipynb
-│
+│   ├── raw/                    ← Place credit_card.csv here (not tracked; see Setup)
+│   └── processed/              ← Generated train/test splits
 ├── src/
 │   ├── data_processing.py      ← Load, clean, split
 │   ├── feature_engineering.py  ← Scaling, pipeline construction
-│   ├── train.py                ← Training, CV, hyperparameter tuning
-│   ├── evaluate.py             ← Metrics, plots, threshold analysis
-│   └── explain.py              ← SHAP global and local explanations
-│
-├── models/                     ← Saved joblib artifacts
-├── artifacts/
-│   ├── metrics/                ← CSV metric tables
-│   ├── figures/                ← PNG plots
-│   └── shap/                   ← SHAP plots
-│
-├── app/
-│   └── streamlit_app.py        ← Demo UI
-│
+│   ├── train.py                ← Training and cross-validation helpers
+│   ├── evaluate.py             ← Metrics and plots
+│   ├── explain.py              ← SHAP helpers
+│   └── run_*.py                ← One script per milestone (see below)
+├── app/                        ← Streamlit demo and model-loading service
+├── tests/                      ← Automated tests
+├── scripts/                    ← Dissertation .docx builder
+├── docs/                       ← Dissertation draft and evidence records
+├── models/                     ← Saved final model and metadata
+├── artifacts/                  ← Metrics, figures and SHAP outputs
+├── notebooks/archive/          ← Superseded template notebooks (do not run)
 ├── config.py                   ← All paths and settings
-├── requirements.txt
-└── README.md
+└── requirements.txt
 ```
 
 ---
@@ -120,25 +108,9 @@ Completed reproducible phase commands:
 
 The continuous dissertation draft and evidence records are in `docs/`.
 
-### 4. Run notebooks in order
+### 4. Launch Streamlit demo
 
-```bash
-jupyter notebook
-```
-
-Open and run each notebook in sequence:
-
-| Notebook | Purpose |
-|---|---|
-| `01_data_exploration.ipynb` | EDA — shapes, distributions, imbalance |
-| `02_preprocessing.ipynb` | Clean → split → scale → save processed data |
-| `03_baseline_models.ipynb` | Train LR, DT, RF; generate comparison table |
-| `04_model_improvement.ipynb` | Imbalance strategies, tuning, threshold analysis |
-| `05_shap_explainability.ipynb` | Global + local SHAP, save the final model |
-
-### 5. Launch Streamlit demo
-
-After the notebooks have been run and models saved:
+After the milestone scripts have been run (or with the committed model artifacts):
 
 ```bash
 streamlit run app/streamlit_app.py
