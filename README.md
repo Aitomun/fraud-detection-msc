@@ -5,6 +5,8 @@
 
 ## Project Overview
 
+**Live demo:** https://fraud-detection-msc.streamlit.app/ (free tier; the first load may take a moment while the app wakes up)
+
 This project builds a reproducible, explainable machine-learning prototype for detecting
 fraudulent credit-card transactions. It is an **academic research prototype**, not a
 production banking system.
