@@ -127,6 +127,25 @@ After the milestone scripts have been run (or with the committed model artifacts
 streamlit run app/streamlit_app.py
 ```
 
+### 5. Uploading a dataset (Option C)
+
+Option C scores a whole file with the frozen model and threshold (0.485).
+
+- **Accepted:** CSV or Parquet (up to 200,000 rows) with `Time`, `V1`–`V28`, `Amount`.
+  An optional `Class` column (0/1) adds precision, recall, F1, PR-AUC and a
+  confusion matrix. Common spellings (`v1`, `V_1`, `PCA1`, `amount`, `is_fraud`,
+  `label`) are recognised, and a file without a header is read in that column order.
+- **Output:** predictions sorted by fraud probability, a list of rejected rows with
+  the reason (non-numeric, missing, infinite, negative Amount), a CSV download and a
+  SHAP waterfall for any selected row.
+- **Not accepted:** everyday transaction files (merchant, category, location, …).
+  The app detects these and explains why instead of scoring them: V1–V28 are PCA
+  components of confidential features that cannot be rebuilt from other columns.
+  See [`docs/schema_limitation.md`](docs/schema_limitation.md).
+
+Two demo files are built in: the 1,000-row test sample and
+`data/sample/everyday_format_example.csv`.
+
 ---
 
 ## Important Notes
@@ -154,3 +173,5 @@ produces identical results given the same dataset.
 4. SHAP explains predictions, not causality.
 5. The Streamlit app is a demo, not a production system.
 6. False positives and false negatives carry different financial consequences.
+7. The model can only score data in the published V1–V28 schema; everyday transaction
+   data would need a separately trained model (see `docs/schema_limitation.md`).
