@@ -1,0 +1,6 @@
+transaction_id,timestamp,amount,merchant,category,city,card_type
+T0001,2026-01-05 09:14:22,42.10,Corner Grocery,grocery,Leeds,debit
+T0002,2026-01-05 12:40:03,8.75,Daily Coffee,food_drink,Leeds,debit
+T0003,2026-01-05 23:58:41,999.00,Online Electronics,electronics,Unknown,credit
+T0004,2026-01-06 07:02:15,15.20,City Transit,transport,Manchester,debit
+T0005,2026-01-06 18:33:50,120.00,Fuel Station,fuel,Leeds,credit

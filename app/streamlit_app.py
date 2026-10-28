@@ -8,6 +8,7 @@ This Streamlit application:
 2. Offers two interaction modes:
    Option A — manual numeric input for all features.
    Option B — sample transaction selector (from the test set).
+   Option C — dataset upload (published schema only; other schemas are explained).
 3. Generates a prediction and fraud probability.
 4. Displays a SHAP local explanation.
 
@@ -53,6 +54,21 @@ from app.model_service import (
     predict_transactions,
     validate_input_frame,
 )
+from app.upload_service import (
+    LABEL_COL,
+    MAX_ROWS,
+    detect_schema,
+    evaluate_labelled,
+    normalise_columns,
+    read_upload,
+    score_upload,
+)
+from config import SHAP_DIR
+
+DEMO_FILES = {
+    "Demo — 1,000-row test sample (published format)": DATA_SAMPLE / "test_sample.parquet",
+    "Demo — everyday-format example": DATA_SAMPLE / "everyday_format_example.csv",
+}
 
 # ---------------------------------------------------------------------------
 # Page configuration
@@ -116,6 +132,170 @@ def shap_waterfall_fig(model, explainer, X_single: pd.DataFrame, feature_names: 
 
 
 # ---------------------------------------------------------------------------
+# Option C helpers — dataset upload
+# ---------------------------------------------------------------------------
+
+@st.cache_data
+def load_global_shap_importance():
+    path = SHAP_DIR / "global_shap_importance.csv"
+    return pd.read_csv(path) if path.exists() else None
+
+
+def render_schema_limitation(kind: str, missing: list):
+    """Explain why a file without the published V1–V28 features cannot be scored."""
+    if kind == "partial":
+        st.error(f"This file is missing {len(missing)} model feature(s): {', '.join(missing)}")
+    else:
+        st.error("This file uses everyday transaction columns, not the model's V1–V28 features.")
+    st.markdown(
+        "**Why it cannot be scored**\n\n"
+        "1. **V1–V28 cannot be rebuilt from everyday columns.** They are PCA components "
+        "of confidential bank features. The publishers never released the original "
+        "features, the PCA loadings or the scaling, so no mapping from merchant, "
+        "category or location to V1–V28 exists.\n"
+        "2. **Re-running PCA on a new file does not help.** PCA axes depend on the data "
+        "they are fitted on, so a new file's components would have different meanings, "
+        "order and signs from the ones the model learned.\n"
+        "3. **The model's decisions depend on V1–V28.** The global SHAP ranking below "
+        "shows the features the model relies on most."
+    )
+    importance = load_global_shap_importance()
+    if importance is not None:
+        ranks = importance.set_index("feature")["rank"]
+        st.caption(
+            f"Amount ranks {ranks['Amount']} and Time ranks {ranks['Time']} of "
+            f"{len(ranks)} features; every feature above them is a V component."
+        )
+        st.bar_chart(
+            importance.head(15).set_index("feature")["mean_absolute_shap"],
+            horizontal=True,
+            sort="-mean_absolute_shap",
+            y_label="",
+            x_label="Mean |SHAP| (fraud probability)",
+        )
+    st.markdown(
+        "4. **Filling V1–V28 with zeros or guesses gives misleading results.** Each "
+        "component averages about zero, so filled rows look like an average "
+        "transaction. The model would still output confident-looking probabilities "
+        "that mean nothing (train/serve skew).\n\n"
+        "**What works instead:** upload data in the published format "
+        "(`Time`, `V1`–`V28`, `Amount`, optional `Class`). Scoring everyday "
+        "transaction data needs a different model trained on such features, which is "
+        "future work beyond this prototype."
+    )
+
+
+def render_upload_results(model, metadata, results, invalid, threshold):
+    scored = len(results)
+    flagged = int(results["predicted_class"].sum()) if scored else 0
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Rows scored", f"{scored:,}")
+    c2.metric("Rows rejected", f"{len(invalid):,}")
+    c3.metric("Flagged as fraud", f"{flagged:,}")
+    c4.metric("Flag rate", f"{flagged / scored:.2%}" if scored else "—")
+
+    if len(invalid):
+        with st.expander(f"Rejected rows ({len(invalid):,})"):
+            st.dataframe(invalid, width="stretch")
+    if not scored:
+        st.warning("No valid rows to score.")
+        return
+
+    ranked = results.sort_values("fraud_probability", ascending=False)
+    st.subheader("Predictions (highest fraud probability first)")
+    st.dataframe(ranked, width="stretch", height=320)
+    st.download_button(
+        "⬇️ Download predictions (CSV)",
+        ranked.to_csv(index=True).encode("utf-8"),
+        file_name="fraud_predictions.csv",
+        mime="text/csv",
+    )
+
+    if LABEL_COL in results.columns:
+        st.subheader("Performance on the uploaded labels")
+        try:
+            metrics = evaluate_labelled(
+                results[LABEL_COL], results["fraud_probability"], results["predicted_class"]
+            )
+        except ValueError as error:
+            st.warning(f"Labels found but not evaluated: {error}")
+        else:
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Precision", f"{metrics['precision']:.3f}")
+            m2.metric("Recall", f"{metrics['recall']:.3f}")
+            m3.metric("F1", f"{metrics['f1']:.3f}")
+            m4.metric("PR-AUC", "—" if metrics["pr_auc"] is None else f"{metrics['pr_auc']:.3f}")
+            st.dataframe(metrics["confusion_matrix"])
+            st.caption(f"Computed at the frozen threshold {threshold:.3f}.")
+
+    st.subheader("Explain one transaction")
+    row_id = st.selectbox(
+        "Row (ordered by fraud probability)",
+        ranked.index.tolist(),
+        format_func=lambda i: f"Row {i} — {ranked.at[i, 'fraud_probability']:.2%}",
+    )
+    X_row = ranked.loc[[row_id], FEATURE_COLS].apply(pd.to_numeric)
+    try:
+        explainer = get_explainer(model, X_row)
+        fig = shap_waterfall_fig(model, explainer, X_row, get_feature_names(model, X_row))
+        st.pyplot(fig, width="stretch")
+        plt.close(fig)
+    except Exception as e:
+        st.warning(f"SHAP explanation could not be generated: {e}")
+
+
+def render_upload_mode(model, metadata, threshold):
+    st.subheader("Score a Dataset")
+    st.info(
+        "Upload a CSV or Parquet file with the published columns `Time`, `V1`–`V28` "
+        "and `Amount`. An optional `Class` column (0/1) adds performance metrics. "
+        f"Files without a header are read in that column order. Limit: {MAX_ROWS:,} rows."
+    )
+    source = st.radio("Data source", ["Upload a file", *DEMO_FILES], horizontal=True)
+    if source == "Upload a file":
+        uploaded = st.file_uploader("Transaction file", type=["csv", "parquet"])
+        if uploaded is None:
+            return
+        name, data = uploaded.name, uploaded.getvalue()
+    else:
+        path = DEMO_FILES[source]
+        name, data = path.name, path.read_bytes()
+
+    try:
+        frame = normalise_columns(read_upload(name, data))
+    except ValueError as error:
+        st.error(str(error))
+        return
+
+    st.write(f"**{name}** — {len(frame):,} rows × {frame.shape[1]} columns")
+    st.dataframe(frame.head(5), width="stretch")
+
+    kind, missing = detect_schema(frame)
+    if kind != "pca":
+        render_schema_limitation(kind, missing)
+        return
+    st.success("Published schema detected — the file can be scored.")
+
+    key = (name, len(data), hash(data))
+    if st.button("🔎 Predict Dataset", type="primary"):
+        with st.spinner("Scoring transactions …"):
+            st.session_state["upload_scored"] = (key, *score_upload(model, metadata, frame))
+    stored = st.session_state.get("upload_scored")
+    if stored and stored[0] == key:
+        render_upload_results(model, metadata, stored[1], stored[2], threshold)
+
+
+def render_footer():
+    st.divider()
+    st.caption(
+        "Research Prototype | MSc Dissertation | "
+
+        "V1–V28 are anonymized features | "
+        "SHAP explains model behaviour, not causality."
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main UI
 # ---------------------------------------------------------------------------
 
@@ -156,9 +336,18 @@ def main():
     # ------------------------------------------------------------------
     mode = st.radio(
         "Input mode",
-        ["Option A — Manual feature input", "Option B — Sample transaction selector"],
+        [
+            "Option A — Manual feature input",
+            "Option B — Sample transaction selector",
+            "Option C — Upload dataset",
+        ],
         horizontal=True,
     )
+
+    if mode.startswith("Option C"):
+        render_upload_mode(model, metadata, threshold)
+        render_footer()
+        return
 
     # ------------------------------------------------------------------
     # Option A: manual input
@@ -289,13 +478,7 @@ def main():
     # ------------------------------------------------------------------
     # Footer
     # ------------------------------------------------------------------
-    st.divider()
-    st.caption(
-        "Research Prototype | MSc Dissertation | "
-        
-        "V1–V28 are anonymized features | "
-        "SHAP explains model behaviour, not causality."
-    )
+    render_footer()
 
 
 if __name__ == "__main__":
